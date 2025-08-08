@@ -1,0 +1,13 @@
+[package]
+name = "etiles"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Library for processing 3D Tiles data."
+
+
+[dependencies]
+etiles-core = { version = "0.0.1-alpha.8", path = "../etiles-core" }
+etiles-io = { version = "0.0.1-alpha.8", path = "../etiles-io" }

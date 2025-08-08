@@ -1,0 +1,30 @@
+[package]
+name = "etiles-io"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "IO operations for processing 3D Tiles data."
+
+
+[dependencies]
+etiles-core = { version = "0.0.1-alpha.8", path = "../etiles-core" }
+
+ecoord = { workspace = true }
+epoint = { workspace = true }
+
+thiserror = { workspace = true }
+tracing = { workspace = true }
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+serde_repr = { workspace = true }
+bincode = { workspace = true }
+bitvec = { workspace = true }
+nalgebra = { workspace = true }
+tar = { workspace = true }
+chrono = { workspace = true }
+rayon = { workspace = true }
+gltf = { workspace = true }
+gltf-json = { workspace = true }
+bytemuck = { workspace = true }

@@ -1,0 +1,20 @@
+[package]
+name = "etiles-core"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Core primitives and operations for processing 3D Tiles data."
+
+
+[dependencies]
+ecoord = { workspace = true }
+epoint = { workspace = true }
+eproj = { workspace = true }
+
+thiserror = { workspace = true }
+nalgebra = { workspace = true }
+palette = { workspace = true }
+log = { workspace = true }
+rayon = { workspace = true }
