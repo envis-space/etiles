@@ -28,3 +28,4 @@ rayon = { workspace = true }
 gltf = { workspace = true }
 gltf-json = { workspace = true }
 bytemuck = { workspace = true }
+planus = { workspace = true }

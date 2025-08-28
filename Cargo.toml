@@ -34,7 +34,7 @@ strum_macros = "0.27.2"
 tar = "0.4.44"
 chrono = "0.4.41"
 rayon = "1.10.0"
-log = "0.4.27"
 gltf = "1.4.1"
 gltf-json = "1.4.1"
 bytemuck = "1.23.1"
+planus = "=1.1.1" # temporary fix

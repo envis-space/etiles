@@ -4,7 +4,6 @@ use ecoord::HasAabb;
 use ecoord::octree::Octree;
 use epoint::transform::apply_isometry;
 use eproj::{Projector, SpatialReferenceIdentifier};
-use log::info;
 use nalgebra::{Isometry3, Point3, UnitQuaternion};
 use palette::Srgb;
 use std::f64;

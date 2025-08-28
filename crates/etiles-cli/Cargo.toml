@@ -19,3 +19,8 @@ anyhow = { workspace = true }
 clap = { workspace = true, features = ["derive"] }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
+
+
+[[bin]]
+name = "etiles"
+path = "src/main.rs"
