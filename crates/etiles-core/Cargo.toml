@@ -17,4 +17,3 @@ thiserror = { workspace = true }
 nalgebra = { workspace = true }
 palette = { workspace = true }
 rayon = { workspace = true }
-planus = { workspace = true }
