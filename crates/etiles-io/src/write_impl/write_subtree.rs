@@ -216,7 +216,7 @@ impl AvailabilityRecord {
     }
 
     pub fn get_padded_buffer(&self) -> Vec<u8> {
-        if self.buffer().len() % 8 == 0 {
+        if self.buffer().len().is_multiple_of(8) {
             return self.buffer();
         }
 

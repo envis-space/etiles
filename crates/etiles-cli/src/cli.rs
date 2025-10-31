@@ -1,4 +1,5 @@
-use clap::{Parser, Subcommand};
+use clap::{Parser, Subcommand, ValueHint};
+use std::path::PathBuf;
 
 #[derive(Parser)]
 #[clap(author, version, about, long_about = None, propagate_version = true)]
@@ -12,12 +13,12 @@ pub enum Commands {
     /// Convert point cloud files to 3D Tiles
     ConvertPointCloudToTiles {
         /// Input file path
-        #[clap(long)]
-        input_path: String,
+        #[clap(long, value_hint = ValueHint::FilePath)]
+        input_path: PathBuf,
 
         /// Output directory
-        #[clap(long)]
-        output_directory_path: String,
+        #[clap(long, value_hint = ValueHint::DirPath)]
+        output_directory_path: PathBuf,
 
         /// Maximum number of points per octant
         #[clap(long, default_value_t = 100000)]

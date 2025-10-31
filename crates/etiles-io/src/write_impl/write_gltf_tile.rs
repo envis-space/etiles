@@ -16,7 +16,7 @@ fn to_padded_byte_vector<T: bytemuck::NoUninit>(data: &[T]) -> Vec<u8> {
     let byte_slice: &[u8] = bytemuck::cast_slice(data);
     let mut new_vec: Vec<u8> = byte_slice.to_owned();
 
-    while new_vec.len() % 4 != 0 {
+    while !new_vec.len().is_multiple_of(4) {
         new_vec.push(0); // pad to multiple of four bytes
     }
 

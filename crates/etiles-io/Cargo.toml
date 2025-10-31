@@ -9,7 +9,7 @@ description = "IO operations for processing 3D Tiles data."
 
 
 [dependencies]
-etiles-core = { version = "0.0.1-alpha.8", path = "../etiles-core" }
+etiles-core = { version = "0.0.1-alpha.9", path = "../etiles-core" }
 
 ecoord = { workspace = true }
 epoint = { workspace = true }
