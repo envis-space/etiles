@@ -1,7 +1,7 @@
 use crate::error::Error;
 use crate::reproject::reproject_point_cloud;
 use ecoord::HasAabb;
-use ecoord::octree::Octree;
+use ecoord::octree::{Octree, StorageMode};
 use epoint::transform::apply_isometry;
 use eproj::{Projector, SpatialReferenceIdentifier};
 use nalgebra::{Isometry3, Point3, UnitQuaternion};
@@ -86,6 +86,7 @@ impl Tileset {
         let point_cloud_octree = Octree::new(
             point_cloud_vertices,
             maximum_points_per_octant as usize,
+            StorageMode::AllOctants,
             seed_number,
         )?;
 
