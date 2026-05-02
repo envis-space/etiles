@@ -1,0 +1,214 @@
+name: Release
+
+on:
+  push:
+    tags:
+    - '[0-9]+.[0-9]+.[0-9]+*'
+
+permissions:
+  contents: write
+
+jobs:
+
+  check-version:
+    name: Check version
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v6
+    - name: Verify tag matches Cargo.toml
+      shell: bash
+      run: |
+        VERSION="${{ github.ref_name }}"
+        if ! grep -q "^version = \"$VERSION\"" Cargo.toml; then
+          echo "Tag $VERSION does not match version in Cargo.toml" >&2
+          exit 1
+        fi
+
+  build:
+    needs: check-version
+    name: Build ${{ matrix.target }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+        - target: x86_64-unknown-linux-gnu
+          os: ubuntu-latest
+        - target: aarch64-unknown-linux-gnu
+          os: ubuntu-24.04-arm
+        - target: x86_64-apple-darwin
+          os: macos-latest
+        - target: aarch64-apple-darwin
+          os: macos-latest
+        - target: x86_64-pc-windows-msvc
+          os: windows-latest
+
+    steps:
+    - uses: actions/checkout@v6
+
+    - uses: dtolnay/rust-toolchain@stable
+      with:
+        targets: ${{ matrix.target }}
+
+    - name: Install SQLite3 (Linux)
+      if: runner.os == 'Linux'
+      run: sudo apt-get update && sudo apt-get install -y libsqlite3-dev
+
+    - name: Install SQLite3 (Windows)
+      if: runner.os == 'Windows'
+      shell: pwsh
+      run: |
+        choco install sqlite --no-progress -y
+        vcpkg install sqlite3:x64-windows-static-md
+        $root = "C:\vcpkg\installed\x64-windows-static-md"
+        Add-Content $env:GITHUB_ENV "SQLite3_ROOT=$root"
+        Add-Content $env:GITHUB_ENV "VCPKG_TARGET_TRIPLET=x64-windows-static-md"
+
+    - name: Build
+      env:
+        CMAKE_TOOLCHAIN_FILE: ${{ runner.os == 'Windows' && 'C:\vcpkg\scripts\buildsystems\vcpkg.cmake' || '' }}
+        RUSTFLAGS: ${{ runner.os == 'Windows' && '-L C:\vcpkg\installed\x64-windows-static-md\lib' || '' }}
+      run: cargo build --profile release-lto --bin etiles-cli --target ${{ matrix.target }}
+
+    - name: Package binary (Unix)
+      if: runner.os != 'Windows'
+      run: |
+        BINARY=target/${{ matrix.target }}/release-lto/etiles-cli
+        ARCHIVE=etiles-cli-${{ github.ref_name }}-${{ matrix.target }}.tar.gz
+        tar -czf "$ARCHIVE" -C "$(dirname "$BINARY")" "$(basename "$BINARY")"
+        shasum -a 256 "$ARCHIVE" > "$ARCHIVE.sha256"
+        echo "ARCHIVE=$ARCHIVE" >> "$GITHUB_ENV"
+
+    - name: Package binary (Windows)
+      if: runner.os == 'Windows'
+      shell: pwsh
+      run: |
+        $binary = "target\${{ matrix.target }}\release-lto\etiles-cli.exe"
+        $archive = "etiles-cli-${{ github.ref_name }}-${{ matrix.target }}.zip"
+        Compress-Archive -Path $binary -DestinationPath $archive
+        certutil -hashfile $archive SHA256 > "$archive.sha256"
+        echo "ARCHIVE=$archive" | Out-File -FilePath $env:GITHUB_ENV -Append
+
+    - uses: actions/upload-artifact@v7
+      with:
+        name: etiles-${{ matrix.target }}
+        path: |
+          ${{ env.ARCHIVE }}
+          ${{ env.ARCHIVE }}.sha256
+        if-no-files-found: error
+
+  docker-build:
+    name: Build Docker image (${{ matrix.platform }})
+    needs: [check-version, build]
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      matrix:
+        include:
+        - platform: linux/amd64
+          os: ubuntu-latest
+        - platform: linux/arm64
+          os: ubuntu-24.04-arm
+    steps:
+    - uses: actions/checkout@v6
+
+    - uses: docker/setup-buildx-action@v4
+
+    - uses: docker/login-action@v4
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - uses: docker/metadata-action@v6
+      id: meta
+      with:
+        images: ghcr.io/${{ github.repository_owner }}/etiles-cli
+
+    - uses: docker/build-push-action@v7
+      id: build
+      with:
+        context: .
+        platforms: ${{ matrix.platform }}
+        push: true
+        labels: ${{ steps.meta.outputs.labels }}
+        outputs: type=image,name=ghcr.io/${{ github.repository_owner }}/etiles-cli,push-by-digest=true,name-canonical=true
+        cache-from: type=gha,scope=${{ matrix.platform }}
+        cache-to: type=gha,mode=max,scope=${{ matrix.platform }}
+
+    - name: Export digest
+      run: |
+        mkdir -p /tmp/digests
+        echo "${{ steps.build.outputs.digest }}" > /tmp/digests/${{ matrix.platform == 'linux/amd64' && 'amd64' || 'arm64' }}
+
+    - uses: actions/upload-artifact@v7
+      with:
+        name: digest-${{ matrix.platform == 'linux/amd64' && 'amd64' || 'arm64' }}
+        path: /tmp/digests/*
+        if-no-files-found: error
+
+  docker-manifest:
+    name: Push Docker manifest
+    needs: docker-build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+    - uses: actions/download-artifact@v8
+      with:
+        path: /tmp/digests
+        pattern: digest-*
+        merge-multiple: true
+
+    - uses: docker/setup-buildx-action@v4
+
+    - uses: docker/login-action@v4
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - uses: docker/metadata-action@v6
+      id: meta
+      with:
+        images: ghcr.io/${{ github.repository_owner }}/etiles-cli
+        tags: |
+          type=semver,pattern={{version}}
+          type=semver,pattern={{major}}.{{minor}}
+          type=raw,value=latest
+
+    - name: Create and push manifest
+      run: |
+        DIGESTS=$(cat /tmp/digests/amd64 /tmp/digests/arm64 | xargs -I{} echo "ghcr.io/${{ github.repository_owner }}/etiles-cli@{}")
+        docker buildx imagetools create \
+          $(echo "${{ steps.meta.outputs.tags }}" | xargs -I{} echo "--tag {}") \
+          $DIGESTS
+
+  release:
+    name: Create release
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+    - name: Detect prerelease
+      shell: bash
+      run: |
+        if [[ "${{ github.ref_name }}" == *alpha* || "${{ github.ref_name }}" == *beta* || "${{ github.ref_name }}" == *rc* ]]; then
+          echo "PRERELEASE=true" >> $GITHUB_ENV
+        else
+          echo "PRERELEASE=false" >> $GITHUB_ENV
+        fi
+
+    - uses: actions/download-artifact@v8
+      with:
+        path: artifacts
+        pattern: etiles-*
+        merge-multiple: true
+
+    - uses: softprops/action-gh-release@v3
+      with:
+        files: artifacts/*
+        generate_release_notes: true
+        prerelease: ${{ env.PRERELEASE == 'true' }}
