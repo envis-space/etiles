@@ -2,7 +2,7 @@
 
 A Rust library and CLI tool for processing [3D Tiles](https://www.ogc.org/standards/3dtiles/) data.
 
-> Early stage of development. Developed at the [TUM Chair of Geoinformatics](https://github.com/tum-gis). Contributions welcome.
+[![alt text](https://sensordb.org/assets/downscaled/demo-ingolstadt-inner-city-model-point-cloud-campaign-1-point-cloud-preselected.png)](https://sensordb.org/go/demo-ingolstadt-inner-city-model-point-cloud-campaign-1-point-cloud-preselected)
 
 Features:
 
@@ -11,6 +11,8 @@ Features:
 - Reprojects from any EPSG coordinate system to ECEF (EPSG:4978) using PROJ
 - Encodes RGB colors from input point clouds into GLB tiles
 - Outputs implicit tiling subtrees for efficient streaming
+
+> Early stage of development. Developed at the [TUM Chair of Geoinformatics](https://github.com/tum-gis). Contributions welcome.
 
 ---
 
